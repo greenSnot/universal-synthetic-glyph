@@ -1,0 +1,12 @@
+.bezierEditor, .polynomialEditor {
+    display: inline-block;
+    border: 1px solid #aaa;
+    position: relative;
+}
+.bezierEditor {
+    .keypoint {
+        &:nth-child(3n) {
+            background: rgba(125, 255, 0, 0.5);
+        }
+    }
+}
