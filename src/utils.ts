@@ -1,4 +1,4 @@
-import regression from 'regression';
+import * as regression from 'regression';
 
 import { TopLeftPoint, TopLeftBoundingBox } from './types';
 

@@ -1,12 +1,13 @@
 import { observer } from 'mobx-react';
-import React from 'react';
-import ReactDOM from 'react-dom';
+import * as React from 'react';
+import * as ReactDOM from 'react-dom';
 import styled from 'styled-components';
 
 import {
   PolynomialCurveEditor,
   PolynomialCurveEditorContext,
-/*
+  polynomial_regression,
+  /*
   Size,
   Strokes,
   GlyphData,
@@ -18,7 +19,6 @@ import {
 /*
 import {
   deep_clone,
-  polynomial_regression,
   resize_glyph_strokes,
   resize_bounding_box,
 } from 'universal-synthetic-glyph';
@@ -35,11 +35,22 @@ enum EditorEvent {
 }
 */
 
+type State = {
+  ready: boolean;
+};
+
 @observer
-class Framework extends React.Component<{}, {}> {
+class Framework extends React.Component<{}, State> {
   polynomial_curve_editor_ctx = new PolynomialCurveEditorContext();
+  componentDidMount() {
+    const key_points = [{x: 0, y:0.3}, {x: 1, y: 0.5}];
+    this.polynomial_curve_editor_ctx.key_points = key_points;
+    this.polynomial_curve_editor_ctx.equation = polynomial_regression(key_points);
+  }
   render() {
-    return <PolynomialCurveEditor ctx={this.polynomial_curve_editor_ctx} />;
+    return <PolynomialCurveEditor ctx={this.polynomial_curve_editor_ctx} on_key_points_changed={(idx, type) => {
+      this.polynomial_curve_editor_ctx.equation = polynomial_regression(this.polynomial_curve_editor_ctx.key_points);
+    }} />;
   }
 
   /*

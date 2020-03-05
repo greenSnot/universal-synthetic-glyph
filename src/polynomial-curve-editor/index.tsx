@@ -72,9 +72,16 @@ class KeyPoint extends React.Component<{
   }
 }
 
+export enum KeyPointDiffType {
+  alter = 1,
+  insert,
+  delete,
+}
+
 @observer
 export class PolynomialCurveEditor extends React.Component<{
   ctx: Context,
+  on_key_points_changed: (idx: number, diff_type: KeyPointDiffType) => void,
 }, {}> {
   canvas_ref = React.createRef() as React.RefObject<HTMLCanvasElement>;
 
@@ -161,9 +168,13 @@ export class PolynomialCurveEditor extends React.Component<{
     ) {
       key_point.x = x;
     }
+    this.props.on_key_points_changed(this.props.ctx.active_idx, KeyPointDiffType.alter);
   }
 
   onMouseUp = (e: MouseEvent) => {
+    if (this.props.ctx.editing) {
+      this.props.on_key_points_changed(this.props.ctx.active_idx, KeyPointDiffType.alter);
+    }
     this.props.ctx.editing = false;
     document.removeEventListener('mouseup', this.onMouseUp);
     document.removeEventListener('mousemove', this.onMouseMove);
@@ -190,6 +201,7 @@ export class PolynomialCurveEditor extends React.Component<{
             this.props.ctx.active_idx = idx;
             this.props.ctx.key_points.splice(idx, 0, { x, y });
             this.props.ctx.editing = true;
+            this.props.on_key_points_changed(idx, KeyPointDiffType.insert);
           }
           document.addEventListener('mouseup', this.onMouseUp);
           document.addEventListener('mousemove', this.onMouseMove);
@@ -216,6 +228,7 @@ export class PolynomialCurveEditor extends React.Component<{
               return;
             }
             ctx.key_points.splice(ctx.active_idx, 1);
+            this.props.on_key_points_changed(ctx.active_idx, KeyPointDiffType.delete);
           }}
         >remove</StyledBtn>
       </StyledBtns>

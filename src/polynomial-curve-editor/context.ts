@@ -3,8 +3,6 @@ import { TopLeftPoint } from '../types';
 
 export class PolynomialCurveEditorContext {
   @observable key_points: TopLeftPoint[] = [];
-  @observable preceded_key_points: TopLeftPoint[] = [];
-  @observable succeeded_key_points: TopLeftPoint[] = [];
   @observable active_idx = NaN;
   @observable editing = false;
   @observable order = 0;
