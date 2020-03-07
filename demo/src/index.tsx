@@ -7,6 +7,8 @@ import {
   PolynomialCurveEditor,
   PolynomialCurveEditorContext,
   polynomial_regression,
+  SkeletonEditor,
+  SkeletonEditorContext,
   /*
   Size,
   Strokes,
@@ -39,18 +41,36 @@ type State = {
   ready: boolean;
 };
 
+const StyledApp = styled.div`
+  background: #eee;
+  display: flex;
+`;
+
 @observer
-class Framework extends React.Component<{}, State> {
+class App extends React.Component<{}, State> {
   polynomial_curve_editor_ctx = new PolynomialCurveEditorContext();
+  skeleton_editor_ctx = new SkeletonEditorContext();
+
   componentDidMount() {
-    const key_points = [{x: 0, y:0.3}, {x: 1, y: 0.5}];
+    const key_points = [
+      { x: 0, y: 0.3 },
+      { x: 1, y: 0.5 },
+    ];
     this.polynomial_curve_editor_ctx.key_points = key_points;
     this.polynomial_curve_editor_ctx.equation = polynomial_regression(key_points);
   }
   render() {
-    return <PolynomialCurveEditor ctx={this.polynomial_curve_editor_ctx} on_key_points_changed={(idx, type) => {
-      this.polynomial_curve_editor_ctx.equation = polynomial_regression(this.polynomial_curve_editor_ctx.key_points);
-    }} />;
+    return (
+      <StyledApp>
+        <SkeletonEditor ctx={this.skeleton_editor_ctx} onComplete={() => {}} onReady={() => {}} onSelectChange={() => {}} />
+        <PolynomialCurveEditor
+          ctx={this.polynomial_curve_editor_ctx}
+          on_key_points_changed={(idx, type) => {
+            this.polynomial_curve_editor_ctx.equation = polynomial_regression(this.polynomial_curve_editor_ctx.key_points);
+          }}
+        />
+      </StyledApp>
+    );
   }
 
   /*
@@ -289,8 +309,8 @@ class Framework extends React.Component<{}, State> {
 }
 
 if (!document.getElementById('app')) {
-  const ele = document.createElement('div');
-  ele.id = 'app';
-  document.body.appendChild(ele);
+  const element = document.createElement('div');
+  element.id = 'app';
+  document.body.appendChild(element);
 }
-ReactDOM.render(<Framework />, document.getElementById('app'));
+ReactDOM.render(<App />, document.getElementById('app'));

@@ -2,11 +2,11 @@
   "name": "universal-synthetic-glyph",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/index.js",
+  "main": "lib/index.js",
   "scripts": {
-    "dev": "tsc -w",
+    "dev": "babel src --out-dir lib --source-maps -w & tsc --emitDeclarationOnly -w",
     "dev:demo": "webpack-dev-server --mode=development --config ./demo/webpack.config.ts",
-    "build": "tsc"
+    "build": "babel src --out-dir lib & tsc --emitDeclarationOnly"
   },
   "repository": {
     "type": "git",
@@ -29,12 +29,17 @@
     "styled-components": "^5.0.1"
   },
   "devDependencies": {
+    "@babel/cli": "^7.8.4",
     "@babel/core": "^7.8.6",
     "@babel/plugin-proposal-class-properties": "^7.4.4",
     "@babel/plugin-proposal-decorators": "^7.4.4",
+    "@babel/plugin-transform-modules-commonjs": "^7.8.3",
+    "@babel/plugin-transform-react-jsx": "^7.8.3",
+    "@babel/plugin-transform-typescript": "^7.8.7",
     "@babel/preset-env": "^7.8.6",
     "@babel/preset-react": "^7.0.0",
     "@babel/preset-typescript": "^7.3.3",
+    "@babel/register": "^7.8.6",
     "@types/event-emitter": "^0.3.3",
     "@types/html-webpack-plugin": "^3.2.2",
     "@types/jszip": "^3.1.4",
@@ -48,10 +53,10 @@
     "babel-plugin-add-module-exports": "^1.0.2",
     "babel-plugin-module-resolver": "^3.2.0",
     "babel-plugin-styled-components": "^1.10.7",
-    "babel-plugin-transform-es2015-modules-commonjs": "^6.26.2",
     "copy-webpack-plugin": "^5.0.3",
     "css-loader": "^3.4.2",
     "dependency-cruiser": "^5.0.0",
+    "glob": "^7.1.6",
     "html-webpack-plugin": "^3.2.0",
     "jszip-utils": "^0.0.2",
     "less": "^3.0.4",

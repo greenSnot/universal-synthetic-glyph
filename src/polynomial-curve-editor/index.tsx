@@ -131,20 +131,32 @@ export class PolynomialCurveEditor extends React.Component<{
       }
       context.stroke();
 
+      const n_marks = 5;
+      const dash_weight = 2;
       // draw coordinates
-      context.setLineDash([4, 2]);
       context.strokeStyle = 'rgb(0, 0, 0)';
-      context.lineWidth = 2;
-      context.beginPath();
-      context.moveTo(0, 0);
-      context.lineTo(0, ctx.height);
-      context.moveTo(0, ctx.height);
-      context.lineTo(ctx.width, ctx.height);
-      context.stroke();
+      context.lineWidth = 10;
+      for (let i = 0; i <= 1; i += (1 / n_marks)) {
+        context.beginPath();
+        context.moveTo(i * ctx.width - dash_weight / 2, ctx.height);
+        context.lineTo(i * ctx.width + dash_weight / 2, ctx.height);
+        context.moveTo(0, i * ctx.height - dash_weight / 2);
+        context.lineTo(0, i * ctx.height + dash_weight / 2);
+        context.stroke();
+      }
+      context.lineWidth = 5;
+      for (let i = 0; i <= 1; i += (1 / n_marks / 2)) {
+        context.beginPath();
+        context.moveTo(i * ctx.width - dash_weight / 2, ctx.height);
+        context.lineTo(i * ctx.width + dash_weight / 2, ctx.height);
+        context.moveTo(0, i * ctx.height - dash_weight / 2);
+        context.lineTo(0, i * ctx.height + dash_weight / 2);
+        context.stroke();
+      }
 
       context.font = '12px Times New Roman';
       context.fillStyle = 'Black';
-      for (let i = 0; i <= 1; i += 0.2) {
+      for (let i = 0; i <= 1; i += (1 / n_marks)) {
         context.fillText(i.toFixed(1), 5, ctx.height * (1 - i));
         if (i === 0) {
           continue;

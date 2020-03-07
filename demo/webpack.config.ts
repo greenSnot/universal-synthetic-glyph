@@ -1,7 +1,7 @@
 import { resolve, join } from 'path';
 
 import { Configuration } from 'webpack';
-import * as HTMLWebpackPlugin from 'html-webpack-plugin';
+import HTMLWebpackPlugin = require('html-webpack-plugin');
 
 const cfg: Configuration = {
   entry: join(__dirname, './src/index.tsx'),
