@@ -1,26 +1,34 @@
 import { observable } from 'mobx';
 import { Size, TopLeftPoint, BottomLeftPoint, GlyphStroke } from '../types';
 
+const default_viewport_width = 200;
+const default_viewport_height = 300;
+const default_zoom = 0.75;
+const default_lines_total_height = 200;
+
 export class SkeletonEditorContext {
-  @observable zoom = 1;
+  @observable n_lines = 5;
+  @observable lines_total_height = default_lines_total_height;
+  @observable zoom = default_zoom;
   @observable viewport_offset: TopLeftPoint = {
     x: 0,
     y: 0,
   };
   @observable viewport_size: Size = {
-    width: 200,
-    height: 200,
+    width: default_viewport_width,
+    height: default_viewport_height,
   };
-  @observable canvas_center: BottomLeftPoint = {
+  @observable display_offset: BottomLeftPoint = {
     x: 0,
-    y: 0,
+    y: - (default_viewport_height / default_zoom - default_lines_total_height) / 2,
   };
-  @observable canvas_size: Size = {
-    width: 200,
-    height: 200,
+  @observable display_size: Size = {
+    width: default_viewport_width / default_zoom,
+    height: default_viewport_height / default_zoom,
   };
-  @observable needs_update = false;
   @observable strokes: GlyphStroke[] = [];
+  @observable pixels_per_unit = 100;
+
   @observable active_stroke_idx = NaN;
   @observable active_segment_idx = NaN;
 

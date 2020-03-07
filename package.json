@@ -4,9 +4,9 @@
   "description": "",
   "main": "lib/index.js",
   "scripts": {
-    "dev": "babel src --out-dir lib --source-maps -w & tsc --emitDeclarationOnly -w",
+    "dev": "babel src --watch --out-dir lib --source-maps --extensions .ts,.tsx & tsc --emitDeclarationOnly -w",
     "dev:demo": "webpack-dev-server --mode=development --config ./demo/webpack.config.ts",
-    "build": "babel src --out-dir lib & tsc --emitDeclarationOnly"
+    "build": "babel src --out-dir lib --extensions .ts,.tsx & tsc --emitDeclarationOnly"
   },
   "repository": {
     "type": "git",

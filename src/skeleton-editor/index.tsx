@@ -8,7 +8,6 @@ import { GlyphSegment, BottomLeftPoint, TopLeftPoint, TopLeftBoundingBox } from 
 import { get_global_offset, point_to_arr } from '../utils';
 export * from './context';
 
-
 const StyledEditor = styled.div`
   display: inline-block;
   border: 1px solid #aaa;
@@ -43,7 +42,7 @@ const StyledKeyPoint = styled.div`
   box-shadow: 0 0 3px;
   transform: translateX(-50%) translateY(-50%);
   &:nth-child(3n) {
-      background: rgba(125, 255, 0, 0.5);
+    background: rgba(125, 255, 0, 0.5);
   }
 `;
 
@@ -53,38 +52,58 @@ function segments_to_points(segments: GlyphSegment[]) {
   return points;
 }
 
-function viewport_point_to_canvas_point(p: TopLeftPoint, ctx: Context): BottomLeftPoint {
-  // TODO
-  return p;
+function viewport_point_to_display_point(p: TopLeftPoint, ctx: Context): BottomLeftPoint {
+  return {
+    x: p.x / ctx.zoom + ctx.display_offset.x,
+    y: p.y / ctx.zoom + ctx.display_offset.y,
+  };
 }
 
-function page_point_to_canvas_point(p: TopLeftPoint, ctx: Context): BottomLeftPoint {
-  // TODO
-  return p;
+function page_point_to_display_point(p: TopLeftPoint, ctx: Context): BottomLeftPoint {
+  return viewport_point_to_display_point({
+    x: p.x - ctx.viewport_offset.x,
+    y: p.y - ctx.viewport_offset.y,
+  }, ctx);
 }
 
-function canvas_point_to_page_point(p: TopLeftPoint, ctx: Context): BottomLeftPoint {
-  // TODO
-  return p;
+function display_point_to_page_point(p: TopLeftPoint, ctx: Context): BottomLeftPoint {
+  const t = display_point_to_viewport_point(p, ctx);
+  return {
+    x: t.x + ctx.viewport_offset.x,
+    y: t.y + ctx.viewport_offset.y,
+  };
 }
 
-function canvas_point_to_rendering_point(p: TopLeftPoint, ctx: Context): BottomLeftPoint {
-  // TODO
-  return p;
+function display_point_to_viewport_point(p: TopLeftPoint, ctx: Context): TopLeftPoint {
+  return {
+    x: (p.x - ctx.display_offset.x) * ctx.zoom,
+    y: (p.y - ctx.display_offset.y) * ctx.zoom,
+  };
+}
+
+function display_point_to_rendering_point(p: TopLeftPoint, ctx: Context): TopLeftPoint {
+  const t = display_point_to_viewport_point(p, ctx);
+  return {
+    x: t.x * window.devicePixelRatio,
+    y: t.y * window.devicePixelRatio,
+  };
 }
 
 function page_point_in_viewport(p: TopLeftPoint, ctx: Context): boolean {
-  return false;
+  return p.x >= ctx.viewport_offset.x &&
+    p.y >= ctx.viewport_offset.y &&
+    p.y <= ctx.viewport_offset.y + ctx.viewport_size.height &&
+    p.x <= ctx.viewport_offset.x + ctx.viewport_size.width;
 }
 
 @observer
 class KeyPoint extends React.Component<
   {
-    canvas_point: TopLeftPoint;
+    display_point: TopLeftPoint;
     segment_idx: number;
     stroke_idx: number;
-    store: Context;
-    onChange: (new_canvas_point: TopLeftPoint) => void;
+    ctx: Context;
+    onChange: (new_display_point: TopLeftPoint) => void;
     onComplete: Function;
   },
   {}
@@ -100,29 +119,30 @@ class KeyPoint extends React.Component<
       x: e.pageX,
       y: e.pageY,
     };
-    this.props.onChange(page_point_to_canvas_point(page_point, this.props.store));
+    this.props.onChange(page_point_to_display_point(page_point, this.props.ctx));
   };
 
   render() {
     const idx = this.props.segment_idx;
-    const store = this.props.store;
-    const page_point = canvas_point_to_page_point(this.props.canvas_point, store);
+    const ctx = this.props.ctx;
+    const page_point = display_point_to_page_point(this.props.display_point, ctx);
     return (
       <StyledKeyPoint
         key={idx}
         onMouseDown={e => {
           e.stopPropagation();
-          store.active_segment_idx = Math.floor(idx / 3);
-          store.active_stroke_idx = this.props.stroke_idx;
+          ctx.active_segment_idx = Math.floor(idx / 3);
+          ctx.active_stroke_idx = this.props.stroke_idx;
           document.addEventListener('mousemove', this.onMouseMove);
           document.addEventListener('mouseup', this.onMouseUp);
         }}
         style={{
-          display: page_point_in_viewport(page_point, store) && (idx % 3 === 1 || (store.active_stroke_idx === this.props.stroke_idx && (Math.floor(idx / 3) === store.active_segment_idx || Math.floor(idx / 3) + 1 === store.active_segment_idx))) ? 'inline-block' : 'none',
-          border: store.active_stroke_idx === this.props.stroke_idx && Math.floor(idx / 3) === store.active_segment_idx ? '1px solid #fff' : 'none',
-          left: page_point.x - store.viewport_offset.x,
-          top: page_point.y - store.viewport_offset.y,
-        }}/>
+          display: page_point_in_viewport(page_point, ctx) && (idx % 3 === 1 || (ctx.active_stroke_idx === this.props.stroke_idx && (Math.floor(idx / 3) === ctx.active_segment_idx || Math.floor(idx / 3) + 1 === ctx.active_segment_idx))) ? 'inline-block' : 'none',
+          border: ctx.active_stroke_idx === this.props.stroke_idx && Math.floor(idx / 3) === ctx.active_segment_idx ? '1px solid #fff' : 'none',
+          left: page_point.x - ctx.viewport_offset.x,
+          top: page_point.y - ctx.viewport_offset.y,
+        }}
+      />
     );
   }
 }
@@ -139,7 +159,7 @@ export class SkeletonEditor extends React.Component<
 > {
   canvas_ref = React.createRef() as React.RefObject<HTMLCanvasElement>;
 
-  mouse_down_canvas_point: BottomLeftPoint = { x: 0, y: 0 };
+  mouse_down_display_point: BottomLeftPoint = { x: 0, y: 0 };
 
   componentDidMount() {
     this.update_offset();
@@ -156,13 +176,6 @@ export class SkeletonEditor extends React.Component<
       () => store.active_stroke_idx,
       () => {
         this.props.onSelectChange(store.active_stroke_idx, store.active_segment_idx);
-        this.update_canvas();
-      }
-    );
-    reaction(
-      () => store.needs_update === true,
-      () => {
-        store.needs_update = false;
         this.update_canvas();
       }
     );
@@ -202,13 +215,12 @@ export class SkeletonEditor extends React.Component<
     context.strokeStyle = 'rgb(0, 0, 0)';
     context.lineWidth = 1;
 
-    const n_staff = 5;
-    const c_top_left = viewport_point_to_canvas_point({ x: 0, y: 0 }, ctx);
-    const c_bottom_right = viewport_point_to_canvas_point({ x: ctx.viewport_size.width, y: ctx.viewport_size.height }, ctx);
-    for (let i = 0; i < n_staff; ++i) {
-      const y = i;
-      const p1 = canvas_point_to_rendering_point({ x: c_top_left.x, y }, ctx);
-      const p2 = canvas_point_to_rendering_point({ x: c_bottom_right.x, y }, ctx);
+    const c_top_left_x = viewport_point_to_display_point({ x: 0, y: 0 }, ctx).x;
+    const c_bottom_right_x = viewport_point_to_display_point({ x: ctx.viewport_size.width, y: 0 }, ctx).x;
+    for (let i = 0; i < ctx.n_lines; ++i) {
+      const y = i * ctx.lines_total_height / (ctx.n_lines - 1);
+      const p1 = display_point_to_rendering_point({ x: c_top_left_x, y }, ctx);
+      const p2 = display_point_to_rendering_point({ x: c_bottom_right_x, y }, ctx);
       context.beginPath();
       context.moveTo(p1.x, p1.y);
       context.lineTo(p2.x, p2.y);
@@ -227,8 +239,8 @@ export class SkeletonEditor extends React.Component<
         context.strokeStyle = stroke_idx === ctx.active_stroke_idx && i === ctx.active_segment_idx - 1 ? 'rgb(255, 0, 0)' : 'rgb(0, 0, 255)';
         context.beginPath();
 
-        (context.moveTo as any)(...point_to_arr(canvas_point_to_rendering_point(p, ctx)));
-        (context.bezierCurveTo as any)(...point_to_arr(canvas_point_to_rendering_point(control_point_a, ctx)), ...point_to_arr(canvas_point_to_rendering_point(control_point_b, ctx)), ...point_to_arr(canvas_point_to_rendering_point(next_p, ctx)));
+        (context.moveTo as any)(...point_to_arr(display_point_to_rendering_point(p, ctx)));
+        (context.bezierCurveTo as any)(...point_to_arr(display_point_to_rendering_point(control_point_a, ctx)), ...point_to_arr(display_point_to_rendering_point(control_point_b, ctx)), ...point_to_arr(display_point_to_rendering_point(next_p, ctx)));
         context.stroke();
       }
 
@@ -244,10 +256,10 @@ export class SkeletonEditor extends React.Component<
         const c = points[t + 2];
 
         context.beginPath();
-        (context.moveTo as any)(...point_to_arr(canvas_point_to_rendering_point(b, ctx)));
-        (context.lineTo as any)(...point_to_arr(canvas_point_to_rendering_point(a, ctx)));
-        (context.moveTo as any)(...point_to_arr(canvas_point_to_rendering_point(b, ctx)));
-        (context.lineTo as any)(...point_to_arr(canvas_point_to_rendering_point(c, ctx)));
+        (context.moveTo as any)(...point_to_arr(display_point_to_rendering_point(b, ctx)));
+        (context.lineTo as any)(...point_to_arr(display_point_to_rendering_point(a, ctx)));
+        (context.moveTo as any)(...point_to_arr(display_point_to_rendering_point(b, ctx)));
+        (context.lineTo as any)(...point_to_arr(display_point_to_rendering_point(c, ctx)));
         context.stroke();
       }
     });
@@ -268,32 +280,32 @@ export class SkeletonEditor extends React.Component<
     for (let i = 0; i <= 1; i += 0.2) {
       const x = i * ctx.viewport_size.width;
       const y = i * ctx.viewport_size.height;
-      const canvas_point = viewport_point_to_canvas_point({ x, y }, ctx);
-      context.fillText(canvas_point.y.toFixed(1), 5 * window.devicePixelRatio, y * window.devicePixelRatio);
+      const display_point = viewport_point_to_display_point({ x, y }, ctx);
+      context.fillText(display_point.y.toFixed(1), 5 * window.devicePixelRatio, y * window.devicePixelRatio);
       if (i === 0) {
         continue;
       }
-      context.fillText(canvas_point.x.toFixed(1), x * window.devicePixelRatio, 12 * window.devicePixelRatio);
+      context.fillText(display_point.x.toFixed(1), x * window.devicePixelRatio, 12 * window.devicePixelRatio);
     }
   };
   onMouseMove = (e: MouseEvent) => {
     const store = this.props.ctx;
 
-    const new_canvas_point = page_point_to_canvas_point(
+    const new_display_point = page_point_to_display_point(
       {
         x: e.pageX,
         y: e.pageY,
       },
       store
     );
-    const diff_x = new_canvas_point.x - this.mouse_down_canvas_point.x;
-    const diff_y = new_canvas_point.y - this.mouse_down_canvas_point.y;
+    const diff_x = new_display_point.x - this.mouse_down_display_point.x;
+    const diff_y = new_display_point.y - this.mouse_down_display_point.y;
     const segments = store.strokes[store.active_stroke_idx].segments;
     const segment = segments[store.active_segment_idx];
-    segment.control_point_a.x = this.mouse_down_canvas_point.x + diff_x;
-    segment.control_point_a.y = this.mouse_down_canvas_point.y + diff_y;
-    segment.control_point_b.x = this.mouse_down_canvas_point.x - diff_x;
-    segment.control_point_b.y = this.mouse_down_canvas_point.y - diff_y;
+    segment.control_point_a.x = this.mouse_down_display_point.x + diff_x;
+    segment.control_point_a.y = this.mouse_down_display_point.y + diff_y;
+    segment.control_point_b.x = this.mouse_down_display_point.x - diff_x;
+    segment.control_point_b.y = this.mouse_down_display_point.y - diff_y;
     this.update_canvas();
   };
   onMouseUp = (e: MouseEvent) => {
@@ -319,15 +331,15 @@ export class SkeletonEditor extends React.Component<
             x: e.pageX,
             y: e.pageY,
           };
-          const old_canvas_point = page_point_to_canvas_point(page_point, ctx);
+          const old_display_point = page_point_to_display_point(page_point, ctx);
           if (delta < 0) {
             ctx.zoom *= ctx.zoom_in_factor;
           } else if (delta > 0) {
             ctx.zoom *= ctx.zoom_out_factor;
           }
-          const new_canvas_point = page_point_to_canvas_point(page_point, ctx);
-          ctx.canvas_center.x += new_canvas_point.x - old_canvas_point.x;
-          ctx.canvas_center.y += new_canvas_point.y - old_canvas_point.y;
+          const new_display_point = page_point_to_display_point(page_point, ctx);
+          ctx.display_offset.x += new_display_point.x - old_display_point.x;
+          ctx.display_offset.y += new_display_point.y - old_display_point.y;
           this.update_canvas();
           this.on_complete();
         }}
@@ -336,15 +348,15 @@ export class SkeletonEditor extends React.Component<
           height: ctx.viewport_size.height,
         }}
         onMouseDown={e => {
-          this.mouse_down_canvas_point = page_point_to_canvas_point(
+          this.mouse_down_display_point = page_point_to_display_point(
             {
               x: e.pageX,
               y: e.pageY,
             },
             ctx
           );
-          const x = this.mouse_down_canvas_point.x;
-          const y = this.mouse_down_canvas_point.y;
+          const x = this.mouse_down_display_point.x;
+          const y = this.mouse_down_display_point.y;
 
           let stroke;
           const new_segment: GlyphSegment = {
@@ -360,7 +372,6 @@ export class SkeletonEditor extends React.Component<
             pivot_point: { x, y },
             control_point_b: { x, y },
           };
-          debugger
           if (!ctx.strokes.length) {
             ctx.active_stroke_idx = 0;
             stroke = { segments: [new_segment] };
@@ -382,15 +393,15 @@ export class SkeletonEditor extends React.Component<
             <KeyPoint
               stroke_idx={stroke_idx}
               onComplete={() => this.on_complete()}
-              onChange={new_canvas_point => {
-                i.x = new_canvas_point.x;
-                i.y = new_canvas_point.y;
+              onChange={new_display_point => {
+                i.x = new_display_point.x;
+                i.y = new_display_point.y;
                 this.update_canvas();
               }}
               key={idx}
               segment_idx={idx}
-              canvas_point={i}
-              store={this.props.ctx}
+              display_point={i}
+              ctx={this.props.ctx}
             />
           ))
         )}
@@ -484,11 +495,11 @@ export class SkeletonEditor extends React.Component<
               const canvas_width = Math.max(width, height);
               const canvas_height = Math.max(width, height);
               ctx.zoom = 1;
-              ctx.canvas_center = {
+              ctx.display_offset = {
                 x: -bounding_box.offset_x,
                 y: -bounding_box.offset_y,
               };
-              ctx.canvas_size = {
+              ctx.display_size = {
                 width: canvas_width,
                 height: canvas_height,
               };
@@ -502,4 +513,3 @@ export class SkeletonEditor extends React.Component<
     );
   }
 }
-
