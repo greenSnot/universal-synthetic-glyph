@@ -265,28 +265,71 @@ export class SkeletonEditor extends React.Component<
     });
 
     // draw coordinates
-    context.setLineDash([4, 2]);
-    context.strokeStyle = 'rgb(0, 0, 0)';
-    context.lineWidth = 2;
-    context.beginPath();
-    context.moveTo(0, 0);
-    context.lineTo(0, ctx.viewport_size.width * window.devicePixelRatio);
-    context.moveTo(0, 0);
-    context.lineTo(ctx.viewport_size.height * window.devicePixelRatio, 0);
-    context.stroke();
+    const base = 10;
+    const h_interval = Math.pow(base, Math.floor(Math.log(ctx.display_size.height)/Math.log(base)));
+    const w_interval = Math.pow(base, Math.floor(Math.log(ctx.display_size.width)/Math.log(base)));
+    const n_sub_marks = 4;
+    const w_marks: number[] = [];
+    const h_marks: number[] = [];
+    for (let i = ctx.display_offset.x - w_interval * 2, j = ctx.display_size.width + ctx.display_offset.x + w_interval * 2; i < j; i += w_interval) {
+      if (w_marks.length) {
+        const prev = w_marks[w_marks.length - 1];
+        for (let k = 1; k < n_sub_marks; ++k) {
+          w_marks.push(prev + k * w_interval / n_sub_marks);
+        }
+      }
+      w_marks.push(i - (i % w_interval));
+    }
+    for (let i = ctx.display_offset.y - h_interval * 2, j = ctx.display_size.height + ctx.display_offset.y + h_interval * 2; i < j; i += h_interval) {
+      if (h_marks.length) {
+        const prev = h_marks[h_marks.length - 1];
+        for (let k = 1; k < n_sub_marks; ++k) {
+          h_marks.push(prev + k * h_interval / n_sub_marks);
+        }
+      }
+      h_marks.push(i - (i % h_interval));
+    }
 
+    const dash_width = 4;
+    const max_dash_height = 20;
+    const min_dash_height = 10;
+    context.strokeStyle = 'rgb(0, 0, 0)';
     context.font = '12px Times New Roman';
     context.fillStyle = 'Black';
-    for (let i = 0; i <= 1; i += 0.2) {
-      const x = i * ctx.viewport_size.width;
-      const y = i * ctx.viewport_size.height;
-      const display_point = viewport_point_to_display_point({ x, y }, ctx);
-      context.fillText(display_point.y.toFixed(1), 5 * window.devicePixelRatio, y * window.devicePixelRatio);
-      if (i === 0) {
-        continue;
+    const ratio = window.devicePixelRatio;
+    for (let j = 0; j < w_marks.length; ++j) {
+      const i = w_marks[j];
+      const dash_height = j % n_sub_marks === 0 ? max_dash_height : min_dash_height;
+      context.lineWidth = dash_height;
+      context.beginPath();
+      const a = display_point_to_rendering_point({
+        x: i,
+        y: ctx.display_offset.y,
+      }, ctx);
+      context.moveTo(a.x - dash_width / 2, a.y);
+      context.lineTo(a.x + dash_width / 2, a.y);
+      if (j % n_sub_marks === 0) {
+        context.fillText(i.toFixed(2), a.x + dash_width, a.y + dash_height);
       }
-      context.fillText(display_point.x.toFixed(1), x * window.devicePixelRatio, 12 * window.devicePixelRatio);
+      context.stroke();
     }
+    for (let j = 0; j < h_marks.length; ++j) {
+      const i = h_marks[j];
+      const dash_height = j % n_sub_marks === 0 ? max_dash_height : min_dash_height;
+      context.lineWidth = dash_height;
+      context.beginPath();
+      const a = display_point_to_rendering_point({
+        x: ctx.display_offset.x,
+        y: i,
+      }, ctx);
+      context.moveTo(a.x, a.y - dash_width / 2);
+      context.lineTo(a.x, a.y + dash_width / 2);
+      if (j % n_sub_marks === 0) {
+        context.fillText(i.toFixed(2), a.x + dash_height, a.y + dash_width);
+      }
+      context.stroke();
+    }
+
   };
   onMouseMove = (e: MouseEvent) => {
     const store = this.props.ctx;
@@ -338,6 +381,15 @@ export class SkeletonEditor extends React.Component<
             ctx.zoom *= ctx.zoom_out_factor;
           }
           const new_display_point = page_point_to_display_point(page_point, ctx);
+
+          const t = viewport_point_to_display_point({
+            x: ctx.viewport_size.width,
+            y: ctx.viewport_size.height,
+          }, ctx);
+          ctx.display_size = {
+            width: t.x - ctx.display_offset.x,
+            height: t.y - ctx.display_offset.y,
+          };
           ctx.display_offset.x -= new_display_point.x - old_display_point.x;
           ctx.display_offset.y -= new_display_point.y - old_display_point.y;
           this.update_canvas();

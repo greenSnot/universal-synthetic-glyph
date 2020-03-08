@@ -22,6 +22,7 @@ export class SkeletonEditorContext {
     x: 0,
     y: - (default_viewport_height / default_zoom - default_lines_total_height) / 2,
   };
+
   @observable display_size: Size = {
     width: default_viewport_width / default_zoom,
     height: default_viewport_height / default_zoom,
