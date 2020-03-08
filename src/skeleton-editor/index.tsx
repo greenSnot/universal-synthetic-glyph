@@ -338,8 +338,8 @@ export class SkeletonEditor extends React.Component<
             ctx.zoom *= ctx.zoom_out_factor;
           }
           const new_display_point = page_point_to_display_point(page_point, ctx);
-          ctx.display_offset.x += new_display_point.x - old_display_point.x;
-          ctx.display_offset.y += new_display_point.y - old_display_point.y;
+          ctx.display_offset.x -= new_display_point.x - old_display_point.x;
+          ctx.display_offset.y -= new_display_point.y - old_display_point.y;
           this.update_canvas();
           this.on_complete();
         }}
