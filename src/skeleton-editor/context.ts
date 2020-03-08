@@ -28,7 +28,6 @@ export class SkeletonEditorContext {
     height: default_viewport_height / default_zoom,
   };
   @observable strokes: GlyphStroke[] = [];
-  @observable pixels_per_unit = 100;
 
   @observable active_stroke_idx = NaN;
   @observable active_segment_idx = NaN;

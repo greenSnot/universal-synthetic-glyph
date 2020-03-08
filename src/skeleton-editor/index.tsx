@@ -544,16 +544,15 @@ export class SkeletonEditor extends React.Component<
                 height,
               };
 
-              const canvas_width = Math.max(width, height);
-              const canvas_height = Math.max(width, height);
-              ctx.zoom = 1;
+              const ratio = Math.max(width, height) / Math.min(ctx.display_size.width, ctx.display_size.height);
+              ctx.zoom /= ratio;
               ctx.display_offset = {
-                x: -bounding_box.offset_x,
-                y: -bounding_box.offset_y,
+                x: bounding_box.offset_x,
+                y: bounding_box.offset_y,
               };
               ctx.display_size = {
-                width: canvas_width,
-                height: canvas_height,
+                width: ctx.display_size.width * ratio,
+                height: ctx.display_size.height * ratio,
               };
               this.update_canvas();
               this.on_complete();
