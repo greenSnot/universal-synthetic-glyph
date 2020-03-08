@@ -2,9 +2,9 @@ import { observable } from 'mobx';
 import { Size, TopLeftPoint, BottomLeftPoint, GlyphStroke } from '../types';
 
 const default_viewport_width = 200;
-const default_viewport_height = 300;
+const default_viewport_height = 200;
 const default_zoom = 0.75;
-const default_lines_total_height = 200;
+const default_lines_total_height = 100;
 
 export class SkeletonEditorContext {
   @observable n_lines = 5;

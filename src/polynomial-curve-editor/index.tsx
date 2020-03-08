@@ -34,6 +34,7 @@ const StyledBtn = styled.div`
   height: 20px;
   text-align: center;
   background: rgba(0, 0, 0, 0.3);
+  cursor: pointer;
 `;
 
 const StyledBtns = styled.div`
@@ -110,6 +111,7 @@ export class PolynomialCurveEditor extends React.Component<{
       let pre;
       const pow = Math.pow;
       const equation = ctx.equation;
+      context.lineWidth = 1;
       context.beginPath();
       for (let i = 0; i < ctx.width; ++i) {
         const x = i / ctx.width;

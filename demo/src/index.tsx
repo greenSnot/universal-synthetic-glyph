@@ -48,25 +48,39 @@ const StyledApp = styled.div`
 
 @observer
 class App extends React.Component<{}, State> {
-  polynomial_curve_editor_ctx = new PolynomialCurveEditorContext();
+  weight_editor_ctx = new PolynomialCurveEditorContext();
+  deviation_editor_ctx = new PolynomialCurveEditorContext();
   skeleton_editor_ctx = new SkeletonEditorContext();
 
   componentDidMount() {
-    const key_points = [
+    const weight_key_points = [
       { x: 0, y: 0.3 },
       { x: 1, y: 0.5 },
     ];
-    this.polynomial_curve_editor_ctx.key_points = key_points;
-    this.polynomial_curve_editor_ctx.equation = polynomial_regression(key_points);
+    this.weight_editor_ctx.key_points = weight_key_points;
+    this.weight_editor_ctx.equation = polynomial_regression(weight_key_points);
+
+    const deviation_key_points = [
+      { x: 0, y: 0.3 },
+      { x: 1, y: 0.5 },
+    ];
+    this.deviation_editor_ctx.key_points = deviation_key_points;
+    this.deviation_editor_ctx.equation = polynomial_regression(deviation_key_points);
   }
   render() {
     return (
       <StyledApp>
         <SkeletonEditor ctx={this.skeleton_editor_ctx} onComplete={() => {}} onReady={() => {}} onSelectChange={() => {}} />
         <PolynomialCurveEditor
-          ctx={this.polynomial_curve_editor_ctx}
+          ctx={this.weight_editor_ctx}
           on_key_points_changed={(idx, type) => {
-            this.polynomial_curve_editor_ctx.equation = polynomial_regression(this.polynomial_curve_editor_ctx.key_points);
+            this.weight_editor_ctx.equation = polynomial_regression(this.weight_editor_ctx.key_points);
+          }}
+        />
+        <PolynomialCurveEditor
+          ctx={this.deviation_editor_ctx}
+          on_key_points_changed={(idx, type) => {
+            this.deviation_editor_ctx.equation = polynomial_regression(this.deviation_editor_ctx.key_points);
           }}
         />
       </StyledApp>

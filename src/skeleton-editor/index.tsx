@@ -22,6 +22,7 @@ const StyledBtn = styled.div`
   height: 20px;
   text-align: center;
   background: rgba(0, 0, 0, 0.3);
+  cursor: pointer;
 `;
 
 const StyledBtns = styled.div`
