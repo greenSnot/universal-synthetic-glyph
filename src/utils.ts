@@ -103,3 +103,17 @@ export const get_global_offset = (d: HTMLElement, root = document.body) => {
     y: offset_y,
   };
 };
+
+let seed = 1;
+export function set_random_seed(x: number) {
+  seed = x;
+}
+
+export function random() {
+  const x = Math.sin(seed++) << 5;
+  return x - Math.floor(x);
+}
+
+export function uuid() {
+  return random().toString(16);
+}

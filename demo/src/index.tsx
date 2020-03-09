@@ -1,4 +1,5 @@
 import { observer } from 'mobx-react';
+import { reaction } from 'mobx';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import styled from 'styled-components';
@@ -9,6 +10,9 @@ import {
   polynomial_regression,
   SkeletonEditor,
   SkeletonEditorContext,
+  PreviewContext,
+  deep_clone,
+  Preview,
   /*
   Size,
   Strokes,
@@ -51,6 +55,7 @@ class App extends React.Component<{}, State> {
   weight_editor_ctx = new PolynomialCurveEditorContext();
   deviation_editor_ctx = new PolynomialCurveEditorContext();
   skeleton_editor_ctx = new SkeletonEditorContext();
+  preview_ctx = new PreviewContext();
 
   componentDidMount() {
     const weight_key_points = [
@@ -66,11 +71,14 @@ class App extends React.Component<{}, State> {
     ];
     this.deviation_editor_ctx.key_points = deviation_key_points;
     this.deviation_editor_ctx.equation = polynomial_regression(deviation_key_points);
+
   }
   render() {
     return (
       <StyledApp>
-        <SkeletonEditor ctx={this.skeleton_editor_ctx} onComplete={() => {}} onReady={() => {}} onSelectChange={() => {}} />
+      <SkeletonEditor ctx={this.skeleton_editor_ctx} onComplete={() => {
+        this.preview_ctx.strokes = deep_clone(this.skeleton_editor_ctx.strokes);
+      }} onReady={() => {}} onSelectChange={() => {}} />
         <PolynomialCurveEditor
           ctx={this.weight_editor_ctx}
           on_key_points_changed={(idx, type) => {
@@ -83,9 +91,11 @@ class App extends React.Component<{}, State> {
             this.deviation_editor_ctx.equation = polynomial_regression(this.deviation_editor_ctx.key_points);
           }}
         />
+        <Preview ctx={this.preview_ctx}/>
       </StyledApp>
     );
   }
+
 
   /*
   strokes_editor_store?: StrokeEditorStore;
@@ -160,55 +170,6 @@ class App extends React.Component<{}, State> {
     this.setState({
       glyph_id: id,
     });
-  }
-
-  update_preview = () => {
-    if (!this.strokes_editor_store || !this.preview_renderer) {
-      return;
-    }
-    const zoom = this.strokes_editor_store.zoom;
-    const pixels_per_unit = this.strokes_editor_store.pixels_per_unit;
-    const canvas_layout = this.strokes_editor_store.canvas_layout;
-
-    // const glyph = resources.glyphs[this.state.glyph_id];
-    const strokes = deep_clone(this.strokes_editor_store.strokes) as GlyphStroke[];
-    if (strokes.length < 1) {
-      this.preview_renderer.clear();
-      this.preview_renderer.do_draw();
-      return;
-    }
-
-    resize_glyph_strokes(strokes, pixels_per_unit * zoom);
-    const strokes_obj = Strokes.from_glyph_strokes(strokes);
-    const strokes_pixels_with_scales = strokes_obj.pixelize_with_scales();
-
-    this.preview_renderer.clear();
-
-    // TODO: BoundingBox
-
-    strokes_pixels_with_scales.forEach(stroke => stroke.forEach(segment => {
-      if (!this.preview_renderer) {
-        return;
-      }
-      this.preview_renderer.set_brush_textures(resources.brushes.default);
-      const pixels = segment.pixels;
-      const scales = segment.scales;
-      const n_pixel = pixels.length / 2;
-      for (let i = 0; i < n_pixel; ++i) {
-        this.preview_renderer.draw(
-          scales[i] * zoom * pixels_per_unit / 32,
-          0,
-          pixels[i * 2] + canvas_layout.offset_x * pixels_per_unit * zoom,
-          pixels[i * 2 + 1] + canvas_layout.offset_y * pixels_per_unit * zoom,
-        );
-      }
-    }));
-
-    const staff_interval = pixels_per_unit * zoom;
-    const staff_offset_y = canvas_layout.offset_y * pixels_per_unit * zoom;
-    
-    this.preview_renderer.draw_staff(staff_offset_y, staff_interval);
-    this.preview_renderer.do_draw();
   }
 
   get_bounding_box(normalized_strokes: GlyphStroke[]) {

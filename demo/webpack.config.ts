@@ -2,6 +2,7 @@ import { resolve, join } from 'path';
 
 import { Configuration } from 'webpack';
 import HTMLWebpackPlugin = require('html-webpack-plugin');
+import CopyWebpackPlugin = require('copy-webpack-plugin');
 
 const cfg: Configuration = {
   entry: join(__dirname, './src/index.tsx'),
@@ -34,7 +35,12 @@ const cfg: Configuration = {
       },
     ],
   },
-  plugins: [new HTMLWebpackPlugin()],
+  plugins: [
+    new CopyWebpackPlugin([
+      'demo/public',
+    ].map(i => ({from: i, to: './'})), {}),
+    new HTMLWebpackPlugin()
+  ],
 };
 
 export default cfg;
