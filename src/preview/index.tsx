@@ -13,19 +13,35 @@ export * from './context';
 @observer
 export class Preview extends React.Component<{
   ctx: PreviewContext,
+  on_ready: Function,
 }, {}> {
   ref = React.createRef<HTMLCanvasElement>();
 
   canvas_renderer: Renderer | undefined;
 
   componentDidMount() {
-    this.canvas_renderer = new Renderer(this.props.ctx.display_size, this.ref.current!);
-    reaction(() => this.props.ctx.display_size, () => {
-      this.canvas_renderer && this.canvas_renderer.resize(this.props.ctx.display_size);
+    const ctx = this.props.ctx;
+    this.canvas_renderer = new Renderer(ctx.viewport_size, ctx.display_size, this.ref.current!);
+    reaction(() => ctx.viewport_size, () => {
+      this.canvas_renderer!.resize_viewport_size(ctx.viewport_size);
+      this.canvas_renderer!.do_draw();
     });
-    reaction(() => this.props.ctx.strokes, () => {
+    reaction(() => ctx.display_size, () => {
+      this.canvas_renderer!.resize_display_size(ctx.display_size);
+      this.canvas_renderer!.do_draw();
+    });
+    reaction(() => ctx.strokes, () => {
       this.update_preview();
     });
+    reaction(() => ctx.display_offset, () => {
+      this.canvas_renderer!.update_offset(ctx.display_offset);
+      this.canvas_renderer!.do_draw();
+    });
+    reaction(() => ctx.zoom, () => {
+      this.canvas_renderer!.update_scale(ctx.zoom);
+      this.canvas_renderer!.do_draw();
+    });
+    this.props.on_ready();
   }
 
   update_preview = () => {

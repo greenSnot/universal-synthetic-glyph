@@ -18,7 +18,7 @@ export class SkeletonEditorContext {
     width: default_viewport_width,
     height: default_viewport_height,
   };
-  @observable display_offset: BottomLeftPoint = {
+  @observable display_offset: TopLeftPoint = {
     x: 0,
     y: - (default_viewport_height / default_zoom - default_lines_total_height) / 2,
   };

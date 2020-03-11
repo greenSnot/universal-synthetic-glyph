@@ -1,6 +1,6 @@
 import { Application, particles, Sprite, Graphics, Text } from 'pixi.js';
 
-import { TopLeftBoundingBox, Size } from '../types';
+import { TopLeftPoint, TopLeftBoundingBox, Size } from '../types';
 import { random } from '../utils';
 
 export class Renderer {
@@ -12,14 +12,18 @@ export class Renderer {
 
   view: HTMLCanvasElement | undefined;
 
-  resize(size: Size) {
-    this.size = size;
+  resize_display_size(size: Size) {
+    this.display_size = size;
+    this.renderer && this.renderer.renderer.resize(size.width, size.height);
+  }
+
+  resize_viewport_size(size: Size) {
+    this.viewport_size = size;
     if (!this.view) {
       return;
     }
-    this.view.style.width = `${this.size.width}px`;
-    this.view.style.height = `${this.size.height}px`;
-    this.renderer && this.renderer.renderer.resize(this.size.width, this.size.height);
+    this.view.style.width = `${size.width}px`;
+    this.view.style.height = `${size.height}px`;
   }
 
   draw_bounding_box(box: TopLeftBoundingBox) {
@@ -32,22 +36,41 @@ export class Renderer {
     graphics.lineTo(box.offset_x, box.offset_y);
   }
 
-  constructor(public size: Size, canvas_dom?: HTMLCanvasElement) {
+  update_offset(offset: TopLeftPoint) {
+    if (!this.renderer) {
+      return;
+    }
+    this.renderer.stage.position.x = - offset.x;
+    this.renderer.stage.position.y = - offset.y;
+    this.do_draw();
+  }
+
+  update_scale(scale: number) {
+    if (!this.renderer) {
+      return;
+    }
+    this.renderer.stage.scale.x = scale;
+    this.renderer.stage.scale.y = scale;
+    this.do_draw();
+  }
+
+  constructor(public viewport_size: Size, public display_size: Size, canvas_dom?: HTMLCanvasElement) {
     const canvas = canvas_dom || document.createElement('canvas');
     this.renderer = new Application(
       {
         antialias: false,
         autoStart: false,
-        width: this.size.width,
-        height: this.size.height,
+        width: display_size.width,
+        height: display_size.height,
         backgroundColor: 0x1099bb,
         view: canvas,
         resolution: window.devicePixelRatio,
       },
     );
+    (window as any).renderer = this.renderer;
     this.view = canvas;
-    canvas.style.width = `${this.size.width}px`;
-    canvas.style.height = `${this.size.height}px`;
+    canvas.style.width = `${viewport_size.width}px`;
+    canvas.style.height = `${viewport_size.height}px`;
     this.renderer_sprites = new particles.ParticleContainer(
       10000,
       {
@@ -61,7 +84,6 @@ export class Renderer {
     this.renderer.stage.addChild(this.renderer_sprites);
   }
   set_brush_textures(brush_textures: string[]) {
-    // call me before drawing
     this.brush_textures = brush_textures;
     this.n_brush_texture = brush_textures.length;
   }
@@ -86,6 +108,7 @@ export class Renderer {
 }
 
 export class RendererWithStaffs extends Renderer {
+  /*
   bounding_box_graphics = new Graphics();
   draw_staff(offset_y: number, interval: number) {
     const graphics = this.graphics;
@@ -99,4 +122,5 @@ export class RendererWithStaffs extends Renderer {
       graphics.endFill();
     }
   }
+   */
 };

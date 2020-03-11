@@ -61,10 +61,13 @@ function viewport_point_to_display_point(p: TopLeftPoint, ctx: Context): BottomL
 }
 
 function page_point_to_display_point(p: TopLeftPoint, ctx: Context): BottomLeftPoint {
-  return viewport_point_to_display_point({
-    x: p.x - ctx.viewport_offset.x,
-    y: p.y - ctx.viewport_offset.y,
-  }, ctx);
+  return viewport_point_to_display_point(
+    {
+      x: p.x - ctx.viewport_offset.x,
+      y: p.y - ctx.viewport_offset.y,
+    },
+    ctx
+  );
 }
 
 function display_point_to_page_point(p: TopLeftPoint, ctx: Context): BottomLeftPoint {
@@ -91,10 +94,7 @@ function display_point_to_rendering_point(p: TopLeftPoint, ctx: Context): TopLef
 }
 
 function page_point_in_viewport(p: TopLeftPoint, ctx: Context): boolean {
-  return p.x >= ctx.viewport_offset.x &&
-    p.y >= ctx.viewport_offset.y &&
-    p.y <= ctx.viewport_offset.y + ctx.viewport_size.height &&
-    p.x <= ctx.viewport_offset.x + ctx.viewport_size.width;
+  return p.x >= ctx.viewport_offset.x && p.y >= ctx.viewport_offset.y && p.y <= ctx.viewport_offset.y + ctx.viewport_size.height && p.x <= ctx.viewport_offset.x + ctx.viewport_size.width;
 }
 
 @observer
@@ -218,7 +218,7 @@ export class SkeletonEditor extends React.Component<
     const c_top_left_x = viewport_point_to_display_point({ x: 0, y: 0 }, ctx).x;
     const c_bottom_right_x = viewport_point_to_display_point({ x: ctx.viewport_size.width, y: 0 }, ctx).x;
     for (let i = 0; i < ctx.n_lines; ++i) {
-      const y = i * ctx.lines_total_height / (ctx.n_lines - 1);
+      const y = (i * ctx.lines_total_height) / (ctx.n_lines - 1);
       const p1 = display_point_to_rendering_point({ x: c_top_left_x, y }, ctx);
       const p2 = display_point_to_rendering_point({ x: c_bottom_right_x, y }, ctx);
       context.beginPath();
@@ -266,8 +266,8 @@ export class SkeletonEditor extends React.Component<
 
     // draw coordinates
     const base = 10;
-    const h_interval = Math.pow(base, Math.floor(Math.log(ctx.display_size.height)/Math.log(base)));
-    const w_interval = Math.pow(base, Math.floor(Math.log(ctx.display_size.width)/Math.log(base)));
+    const h_interval = Math.pow(base, Math.floor(Math.log(ctx.display_size.height) / Math.log(base)));
+    const w_interval = Math.pow(base, Math.floor(Math.log(ctx.display_size.width) / Math.log(base)));
     const n_sub_marks = 4;
     const w_marks: number[] = [];
     const h_marks: number[] = [];
@@ -275,7 +275,7 @@ export class SkeletonEditor extends React.Component<
       if (w_marks.length) {
         const prev = w_marks[w_marks.length - 1];
         for (let k = 1; k < n_sub_marks; ++k) {
-          w_marks.push(prev + k * w_interval / n_sub_marks);
+          w_marks.push(prev + (k * w_interval) / n_sub_marks);
         }
       }
       w_marks.push(i - (i % w_interval));
@@ -284,7 +284,7 @@ export class SkeletonEditor extends React.Component<
       if (h_marks.length) {
         const prev = h_marks[h_marks.length - 1];
         for (let k = 1; k < n_sub_marks; ++k) {
-          h_marks.push(prev + k * h_interval / n_sub_marks);
+          h_marks.push(prev + (k * h_interval) / n_sub_marks);
         }
       }
       h_marks.push(i - (i % h_interval));
@@ -302,10 +302,13 @@ export class SkeletonEditor extends React.Component<
       const dash_height = j % n_sub_marks === 0 ? max_dash_height : min_dash_height;
       context.lineWidth = dash_height;
       context.beginPath();
-      const a = display_point_to_rendering_point({
-        x: i,
-        y: ctx.display_offset.y,
-      }, ctx);
+      const a = display_point_to_rendering_point(
+        {
+          x: i,
+          y: ctx.display_offset.y,
+        },
+        ctx
+      );
       context.moveTo(a.x - dash_width / 2, a.y);
       context.lineTo(a.x + dash_width / 2, a.y);
       if (j % n_sub_marks === 0) {
@@ -318,10 +321,13 @@ export class SkeletonEditor extends React.Component<
       const dash_height = j % n_sub_marks === 0 ? max_dash_height : min_dash_height;
       context.lineWidth = dash_height;
       context.beginPath();
-      const a = display_point_to_rendering_point({
-        x: ctx.display_offset.x,
-        y: i,
-      }, ctx);
+      const a = display_point_to_rendering_point(
+        {
+          x: ctx.display_offset.x,
+          y: i,
+        },
+        ctx
+      );
       context.moveTo(a.x, a.y - dash_width / 2);
       context.lineTo(a.x, a.y + dash_width / 2);
       if (j % n_sub_marks === 0) {
@@ -329,7 +335,6 @@ export class SkeletonEditor extends React.Component<
       }
       context.stroke();
     }
-
   };
   onMouseMove = (e: MouseEvent) => {
     const ctx = this.props.ctx;
@@ -350,6 +355,9 @@ export class SkeletonEditor extends React.Component<
     segment.control_point_b.x = this.mouse_down_display_point.x - diff_x;
     segment.control_point_b.y = this.mouse_down_display_point.y - diff_y;
     this.update_canvas();
+    this.props.on_change({
+      strokes: ctx.strokes,
+    });
   };
   onMouseUp = (e: MouseEvent) => {
     document.removeEventListener('mouseup', this.onMouseUp);
@@ -378,10 +386,13 @@ export class SkeletonEditor extends React.Component<
           }
           const new_display_point = page_point_to_display_point(page_point, ctx);
 
-          const t = viewport_point_to_display_point({
-            x: ctx.viewport_size.width,
-            y: ctx.viewport_size.height,
-          }, ctx);
+          const t = viewport_point_to_display_point(
+            {
+              x: ctx.viewport_size.width,
+              y: ctx.viewport_size.height,
+            },
+            ctx
+          );
           ctx.display_size = {
             width: t.x - ctx.display_offset.x,
             height: t.y - ctx.display_offset.y,
@@ -451,12 +462,12 @@ export class SkeletonEditor extends React.Component<
               segment_idx={idx}
               display_point={i}
               ctx={this.props.ctx}
-              on_mousemove={(e) => {
+              on_mousemove={e => {
                 const page_point: TopLeftPoint = {
                   x: e.pageX,
                   y: e.pageY,
                 };
-                const p = page_point_to_display_point(page_point, this.props.ctx)
+                const p = page_point_to_display_point(page_point, this.props.ctx);
                 i.x = p.x;
                 i.y = p.y;
                 this.update_canvas();
@@ -516,7 +527,7 @@ export class SkeletonEditor extends React.Component<
               ctx.active_stroke_idx = ctx.strokes.length - 1;
               ctx.active_segment_idx = 0;
               this.props.on_change({
-                active_stroke_idx: ctx.active_stroke_idx, 
+                active_stroke_idx: ctx.active_stroke_idx,
                 strokes: ctx.strokes,
                 active_segment_idx: ctx.active_segment_idx,
               });
