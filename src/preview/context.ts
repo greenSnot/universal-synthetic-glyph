@@ -3,7 +3,11 @@ import { Size, TopLeftPoint, BottomLeftPoint, GlyphStroke } from '../types';
 
 export class PreviewContext {
   @observable strokes: GlyphStroke[] = [];
-  @observable size: Size = {
+  @observable viewport_size: Size = {
+    width: 200,
+    height: 200,
+  };
+  @observable display_size: Size = {
     width: 200,
     height: 200,
   };

@@ -175,10 +175,10 @@ export class PolynomialCurveEditor extends React.Component<{
     key_point.y = parseFloat((1 - (e.pageY - ctx.canvas_global_offset.y) / ctx.height).toFixed(3));
     const x = parseFloat(((e.pageX - ctx.canvas_global_offset.x) / ctx.width).toFixed(3));
     if (
-      (ctx.active_idx > 0 ? x > ctx.key_points[ctx.active_idx - 1].x : true) &&
+      (ctx.active_idx > 0 ? x > ctx.key_points[ctx.active_idx - 1].x : false) &&
       (ctx.active_idx + 1 < ctx.key_points.length
         ? x < ctx.key_points[ctx.active_idx + 1].x
-        : true)
+        : false)
     ) {
       key_point.x = x;
     }

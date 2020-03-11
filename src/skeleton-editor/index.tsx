@@ -104,23 +104,19 @@ class KeyPoint extends React.Component<
     segment_idx: number;
     stroke_idx: number;
     ctx: Context;
-    onChange: (new_display_point: TopLeftPoint) => void;
-    onComplete: Function;
+    on_mousedown: Function;
+    on_mousemove: (e: MouseEvent) => void;
   },
   {}
 > {
   onMouseUp = (e: MouseEvent) => {
     document.removeEventListener('mousemove', this.onMouseMove);
     document.removeEventListener('mouseup', this.onMouseUp);
-    this.props.onComplete();
   };
 
   onMouseMove = (e: MouseEvent) => {
-    const page_point: TopLeftPoint = {
-      x: e.pageX,
-      y: e.pageY,
-    };
-    this.props.onChange(page_point_to_display_point(page_point, this.props.ctx));
+    e.stopPropagation();
+    this.props.on_mousemove(e);
   };
 
   render() {
@@ -132,10 +128,12 @@ class KeyPoint extends React.Component<
         key={idx}
         onMouseDown={e => {
           e.stopPropagation();
-          ctx.active_segment_idx = Math.floor(idx / 3);
-          ctx.active_stroke_idx = this.props.stroke_idx;
+          this.props.on_mousedown();
           document.addEventListener('mousemove', this.onMouseMove);
-          document.addEventListener('mouseup', this.onMouseUp);
+        }}
+        onMouseUp={e => {
+          e.stopPropagation();
+          document.removeEventListener('mousemove', this.onMouseMove);
         }}
         style={{
           display: page_point_in_viewport(page_point, ctx) && (idx % 3 === 1 || (ctx.active_stroke_idx === this.props.stroke_idx && (Math.floor(idx / 3) === ctx.active_segment_idx || Math.floor(idx / 3) + 1 === ctx.active_segment_idx))) ? 'inline-block' : 'none',
@@ -152,9 +150,10 @@ class KeyPoint extends React.Component<
 export class SkeletonEditor extends React.Component<
   {
     ctx: Context;
-    onComplete: Function;
-    onReady: Function;
-    onSelectChange: (active_stroke_idx: number, active_segment_idx: number) => void;
+    on_change: (ctx: Partial<Context>) => void;
+    on_complete: Function;
+    on_ready: Function;
+    on_select_change: (active_stroke_idx: number, active_segment_idx: number) => void;
   },
   {}
 > {
@@ -169,20 +168,20 @@ export class SkeletonEditor extends React.Component<
     reaction(
       () => store.active_segment_idx,
       () => {
-        this.props.onSelectChange(store.active_stroke_idx, store.active_segment_idx);
+        this.props.on_select_change(store.active_stroke_idx, store.active_segment_idx);
         this.update_canvas();
       }
     );
     reaction(
       () => store.active_stroke_idx,
       () => {
-        this.props.onSelectChange(store.active_stroke_idx, store.active_segment_idx);
+        this.props.on_select_change(store.active_stroke_idx, store.active_segment_idx);
         this.update_canvas();
       }
     );
 
     this.update_canvas();
-    this.props.onReady();
+    this.props.on_ready();
   }
   componentDidUpdate() {
     this.update_offset();
@@ -333,19 +332,19 @@ export class SkeletonEditor extends React.Component<
 
   };
   onMouseMove = (e: MouseEvent) => {
-    const store = this.props.ctx;
+    const ctx = this.props.ctx;
 
     const new_display_point = page_point_to_display_point(
       {
         x: e.pageX,
         y: e.pageY,
       },
-      store
+      ctx
     );
     const diff_x = new_display_point.x - this.mouse_down_display_point.x;
     const diff_y = new_display_point.y - this.mouse_down_display_point.y;
-    const segments = store.strokes[store.active_stroke_idx].segments;
-    const segment = segments[store.active_segment_idx];
+    const segments = ctx.strokes[ctx.active_stroke_idx].segments;
+    const segment = segments[ctx.active_segment_idx];
     segment.control_point_a.x = this.mouse_down_display_point.x + diff_x;
     segment.control_point_a.y = this.mouse_down_display_point.y + diff_y;
     segment.control_point_b.x = this.mouse_down_display_point.x - diff_x;
@@ -355,12 +354,8 @@ export class SkeletonEditor extends React.Component<
   onMouseUp = (e: MouseEvent) => {
     document.removeEventListener('mouseup', this.onMouseUp);
     document.removeEventListener('mousemove', this.onMouseMove);
-    this.on_complete();
+    this.props.on_complete();
   };
-
-  on_complete() {
-    this.props.onComplete();
-  }
 
   render() {
     const ctx = this.props.ctx;
@@ -394,7 +389,11 @@ export class SkeletonEditor extends React.Component<
           ctx.display_offset.x -= new_display_point.x - old_display_point.x;
           ctx.display_offset.y -= new_display_point.y - old_display_point.y;
           this.update_canvas();
-          this.on_complete();
+          this.props.on_change({
+            zoom: ctx.zoom,
+            display_offset: ctx.display_offset,
+            display_size: ctx.display_size,
+          });
         }}
         style={{
           width: ctx.viewport_size.width,
@@ -436,7 +435,10 @@ export class SkeletonEditor extends React.Component<
 
           ctx.active_segment_idx = stroke.segments.length - 1;
           this.update_canvas();
-          this.on_complete();
+          this.props.on_change({
+            active_segment_idx: ctx.active_segment_idx,
+            strokes: ctx.strokes,
+          });
           document.addEventListener('mouseup', this.onMouseUp);
           document.addEventListener('mousemove', this.onMouseMove);
         }}>
@@ -445,16 +447,27 @@ export class SkeletonEditor extends React.Component<
           segments_to_points(stroke.segments).map((i, idx) => (
             <KeyPoint
               stroke_idx={stroke_idx}
-              onComplete={() => this.on_complete()}
-              onChange={new_display_point => {
-                i.x = new_display_point.x;
-                i.y = new_display_point.y;
-                this.update_canvas();
-              }}
               key={idx}
               segment_idx={idx}
               display_point={i}
               ctx={this.props.ctx}
+              on_mousemove={(e) => {
+                const page_point: TopLeftPoint = {
+                  x: e.pageX,
+                  y: e.pageY,
+                };
+                const p = page_point_to_display_point(page_point, this.props.ctx)
+                i.x = p.x;
+                i.y = p.y;
+                this.update_canvas();
+                this.props.on_change({
+                  strokes: ctx.strokes,
+                });
+              }}
+              on_mousedown={() => {
+                ctx.active_segment_idx = Math.floor(idx / 3);
+                ctx.active_stroke_idx = stroke_idx;
+              }}
             />
           ))
         )}
@@ -462,41 +475,51 @@ export class SkeletonEditor extends React.Component<
           <StyledBtn
             onMouseDown={e => e.stopPropagation()}
             onClick={() => {
-              const store = this.props.ctx;
-              const stroke = store.strokes[store.active_stroke_idx];
+              const ctx = this.props.ctx;
+              const stroke = ctx.strokes[ctx.active_stroke_idx];
               if (!stroke) {
                 return;
               }
-              stroke.segments.splice(store.active_segment_idx, 1);
+              stroke.segments.splice(ctx.active_segment_idx, 1);
               if (stroke.segments.length === 0) {
-                store.strokes.splice(store.active_stroke_idx, 1);
-                store.active_stroke_idx--;
-                store.active_segment_idx = 0;
-                this.update_canvas();
-                this.props.onComplete();
-                return;
+                ctx.strokes.splice(ctx.active_stroke_idx, 1);
+                ctx.active_stroke_idx--;
+                ctx.active_segment_idx = 0;
+                this.props.on_change({
+                  strokes: ctx.strokes,
+                  active_stroke_idx: ctx.active_stroke_idx,
+                  active_segment_idx: ctx.active_segment_idx,
+                });
+              } else {
+                ctx.active_segment_idx = stroke.segments.length - 1;
+                this.props.on_change({
+                  strokes: ctx.strokes,
+                  active_segment_idx: ctx.active_segment_idx,
+                });
               }
-              store.active_segment_idx = stroke.segments.length - 1;
               this.update_canvas();
-              this.on_complete();
             }}>
             remove
           </StyledBtn>
           <StyledBtn
             onMouseDown={e => e.stopPropagation()}
             onClick={() => {
-              const store = this.props.ctx;
-              if (store.active_segment_idx < 1) {
+              const ctx = this.props.ctx;
+              if (ctx.active_segment_idx < 1) {
                 return;
               }
-              const stroke = store.strokes[store.active_stroke_idx];
-              const segments = stroke.segments.splice(store.active_segment_idx);
-              store.strokes.push({
+              const stroke = ctx.strokes[ctx.active_stroke_idx];
+              const segments = stroke.segments.splice(ctx.active_segment_idx);
+              ctx.strokes.push({
                 segments,
               });
-              store.active_stroke_idx = store.strokes.length - 1;
-              store.active_segment_idx = 0;
-              this.on_complete();
+              ctx.active_stroke_idx = ctx.strokes.length - 1;
+              ctx.active_segment_idx = 0;
+              this.props.on_change({
+                active_stroke_idx: ctx.active_stroke_idx, 
+                strokes: ctx.strokes,
+                active_segment_idx: ctx.active_segment_idx,
+              });
             }}>
             split
           </StyledBtn>
@@ -556,7 +579,11 @@ export class SkeletonEditor extends React.Component<
                 height: ctx.display_size.height * ratio,
               };
               this.update_canvas();
-              this.on_complete();
+              this.props.on_change({
+                display_size: ctx.display_size,
+                display_offset: ctx.display_offset,
+                zoom: ctx.zoom,
+              });
             }}>
             relocate
           </StyledBtn>

@@ -71,14 +71,40 @@ class App extends React.Component<{}, State> {
     ];
     this.deviation_editor_ctx.key_points = deviation_key_points;
     this.deviation_editor_ctx.equation = polynomial_regression(deviation_key_points);
-
   }
   render() {
     return (
       <StyledApp>
-      <SkeletonEditor ctx={this.skeleton_editor_ctx} onComplete={() => {
-        this.preview_ctx.strokes = deep_clone(this.skeleton_editor_ctx.strokes);
-      }} onReady={() => {}} onSelectChange={() => {}} />
+        <SkeletonEditor
+          ctx={this.skeleton_editor_ctx}
+          on_complete={() => {}}
+          on_change={(ctx: Partial<SkeletonEditorContext>) => {
+            if (ctx.strokes) {
+              this.preview_ctx.strokes = deep_clone(ctx.strokes);
+            }
+            if (ctx.display_offset) {
+              this.preview_ctx.display_offset = deep_clone(ctx.display_offset);
+            }
+            if (ctx.display_size) {
+              this.preview_ctx.display_size = deep_clone(ctx.display_size);
+            }
+            if (ctx.viewport_size) {
+              this.preview_ctx.viewport_size = deep_clone(ctx.viewport_size);
+            }
+            if (ctx.zoom !== undefined) {
+              this.preview_ctx.zoom = ctx.zoom;
+            }
+          }}
+          on_ready={() => {
+            const ctx = this.skeleton_editor_ctx;
+            this.preview_ctx.strokes = deep_clone(ctx.strokes);
+            this.preview_ctx.display_offset = deep_clone(ctx.display_offset);
+            this.preview_ctx.display_size = deep_clone(ctx.display_size);
+            this.preview_ctx.viewport_size = deep_clone(ctx.viewport_size);
+            this.preview_ctx.zoom = ctx.zoom;
+          }}
+          on_select_change={() => {}}
+        />
         <PolynomialCurveEditor
           ctx={this.weight_editor_ctx}
           on_key_points_changed={(idx, type) => {
@@ -91,11 +117,10 @@ class App extends React.Component<{}, State> {
             this.deviation_editor_ctx.equation = polynomial_regression(this.deviation_editor_ctx.key_points);
           }}
         />
-        <Preview ctx={this.preview_ctx}/>
+        <Preview ctx={this.preview_ctx} />
       </StyledApp>
     );
   }
-
 
   /*
   strokes_editor_store?: StrokeEditorStore;

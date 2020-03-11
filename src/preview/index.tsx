@@ -19,9 +19,9 @@ export class Preview extends React.Component<{
   canvas_renderer: Renderer | undefined;
 
   componentDidMount() {
-    this.canvas_renderer = new Renderer(this.props.ctx.size, this.ref.current!);
-    reaction(() => this.props.ctx.size, () => {
-      this.canvas_renderer && this.canvas_renderer.resize(this.props.ctx.size);
+    this.canvas_renderer = new Renderer(this.props.ctx.display_size, this.ref.current!);
+    reaction(() => this.props.ctx.display_size, () => {
+      this.canvas_renderer && this.canvas_renderer.resize(this.props.ctx.display_size);
     });
     reaction(() => this.props.ctx.strokes, () => {
       this.update_preview();
