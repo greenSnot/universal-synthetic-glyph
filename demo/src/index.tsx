@@ -60,9 +60,6 @@ class App extends React.Component<{}, {}> {
             if (ctx.display_offset) {
               this.preview_ctx.display_offset = deep_clone(ctx.display_offset);
             }
-            if (ctx.display_size) {
-              this.preview_ctx.display_size = deep_clone(ctx.display_size);
-            }
             if (ctx.viewport_size) {
               this.preview_ctx.viewport_size = deep_clone(ctx.viewport_size);
             }
@@ -73,11 +70,11 @@ class App extends React.Component<{}, {}> {
           on_ready={() => {
             this.renderer_ready.then(() => {
               const ctx = this.skeleton_editor_ctx;
+
+              this.preview_ctx.zoom = ctx.zoom;
               this.preview_ctx.strokes = deep_clone(ctx.strokes);
               this.preview_ctx.display_offset = deep_clone(ctx.display_offset);
-              this.preview_ctx.display_size = deep_clone(ctx.display_size);
               this.preview_ctx.viewport_size = deep_clone(ctx.viewport_size);
-              this.preview_ctx.zoom = ctx.zoom;
             });
           }}
           on_select_change={() => {}}

@@ -1,29 +1,23 @@
-import { Application, particles, Sprite, Graphics, Text } from 'pixi.js';
+import { Application, Sprite, Graphics, Text, ParticleContainer } from 'pixi.js';
+import * as PIXI from 'pixi.js';
 
 import { TopLeftPoint, TopLeftBoundingBox, Size } from '../types';
 import { random } from '../utils';
 
 export class Renderer {
   renderer: Application | undefined;
-  renderer_sprites: particles.ParticleContainer | undefined;
+  renderer_sprites: ParticleContainer | undefined;
+  container: PIXI.Container | undefined;
+
   brush_textures: string[] = [];
   n_brush_texture: number = 0;
   graphics = new Graphics();
 
   view: HTMLCanvasElement | undefined;
 
-  resize_display_size(size: Size) {
-    this.display_size = size;
-    this.renderer && this.renderer.renderer.resize(size.width, size.height);
-  }
-
   resize_viewport_size(size: Size) {
     this.viewport_size = size;
-    if (!this.view) {
-      return;
-    }
-    this.view.style.width = `${size.width}px`;
-    this.view.style.height = `${size.height}px`;
+    this.renderer!.renderer.resize(size.width, size.height);
   }
 
   draw_bounding_box(box: TopLeftBoundingBox) {
@@ -40,8 +34,8 @@ export class Renderer {
     if (!this.renderer) {
       return;
     }
-    this.renderer.stage.position.x = - offset.x;
-    this.renderer.stage.position.y = - offset.y;
+    this.container!.position.x = - offset.x;
+    this.container!.position.y = - offset.y;
     this.do_draw();
   }
 
@@ -54,41 +48,45 @@ export class Renderer {
     this.do_draw();
   }
 
-  constructor(public viewport_size: Size, public display_size: Size, canvas_dom?: HTMLCanvasElement) {
+  constructor(public viewport_size: Size, canvas_dom?: HTMLCanvasElement) {
     const canvas = canvas_dom || document.createElement('canvas');
     this.renderer = new Application(
       {
         antialias: false,
         autoStart: false,
-        width: display_size.width,
-        height: display_size.height,
+        width: viewport_size.width,
+        height: viewport_size.height,
         backgroundColor: 0x1099bb,
+        autoDensity: true,
         view: canvas,
         resolution: window.devicePixelRatio,
       },
     );
-    (window as any).renderer = this.renderer;
     this.view = canvas;
     canvas.style.width = `${viewport_size.width}px`;
     canvas.style.height = `${viewport_size.height}px`;
-    this.renderer_sprites = new particles.ParticleContainer(
+    this.container = new PIXI.Container();
+    this.renderer_sprites = new ParticleContainer(
       10000,
       {
         scale: true,
         uvs: true,
         position: true,
         rotation: true,
-      },
+      } as any,
     );
-    this.renderer.stage.addChild(this.graphics);
-    this.renderer.stage.addChild(this.renderer_sprites);
+    this.container.addChild(this.graphics);
+    this.container.addChild(this.renderer_sprites!);
+    this.renderer.stage.addChild(this.container!);
+
+    (window as any).r = this.renderer;
   }
   set_brush_textures(brush_textures: string[]) {
     this.brush_textures = brush_textures;
     this.n_brush_texture = brush_textures.length;
   }
   draw(scale: number, rotation: number, point_x: number, point_y: number) {
-    const dot = Sprite.fromImage(this.brush_textures[Math.floor(this.n_brush_texture * random())]);
+    const dot = Sprite.from(this.brush_textures[Math.floor(this.n_brush_texture * random())]);
     dot.scale.x = scale;
     dot.scale.y = scale;
 
