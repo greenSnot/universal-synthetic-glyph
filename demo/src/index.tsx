@@ -4,26 +4,17 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import styled from 'styled-components';
 
-import {
-  PolynomialCurveEditor,
-  PolynomialCurveEditorContext,
-  polynomial_regression,
-  SkeletonEditor,
-  SkeletonEditorContext,
-  PreviewContext,
-  deep_clone,
-  Preview,
-} from 'universal-synthetic-glyph';
+import { PolynomialCurveEditor, PolynomialCurveEditorContext, polynomial_regression, SkeletonEditor, SkeletonEditorContext, PreviewContext, deep_clone, Preview } from 'universal-synthetic-glyph';
 
 const StyledApp = styled.div`
   background: #eee;
-  display: flex;
 `;
 
 @observer
 class App extends React.Component<{}, {}> {
   weight_editor_ctx = new PolynomialCurveEditorContext();
   deviation_editor_ctx = new PolynomialCurveEditorContext();
+  rotation_editor_ctx = new PolynomialCurveEditorContext();
   skeleton_editor_ctx = new SkeletonEditorContext();
   preview_ctx = new PreviewContext();
 
@@ -46,10 +37,23 @@ class App extends React.Component<{}, {}> {
     ];
     this.deviation_editor_ctx.key_points = deviation_key_points;
     this.deviation_editor_ctx.equation = polynomial_regression(deviation_key_points);
+
+    const rotation_key_points = [
+      { x: 0, y: 0.3 },
+      { x: 1, y: 0.5 },
+    ];
+    this.rotation_editor_ctx.key_points = rotation_key_points;
+    this.rotation_editor_ctx.equation = polynomial_regression(rotation_key_points);
   }
   render() {
     return (
       <StyledApp>
+        <Preview
+          ctx={this.preview_ctx}
+          on_ready={() => {
+            this.renderer_ready_resolve!();
+          }}
+        />
         <SkeletonEditor
           ctx={this.skeleton_editor_ctx}
           on_complete={() => {}}
@@ -91,9 +95,12 @@ class App extends React.Component<{}, {}> {
             this.deviation_editor_ctx.equation = polynomial_regression(this.deviation_editor_ctx.key_points);
           }}
         />
-        <Preview ctx={this.preview_ctx} on_ready={() => {
-          this.renderer_ready_resolve!();
-        }}/>
+        <PolynomialCurveEditor
+          ctx={this.rotation_editor_ctx}
+          on_key_points_changed={(idx, type) => {
+            this.rotation_editor_ctx.equation = polynomial_regression(this.rotation_editor_ctx.key_points);
+          }}
+        />
       </StyledApp>
     );
   }

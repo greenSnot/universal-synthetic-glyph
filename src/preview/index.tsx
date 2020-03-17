@@ -103,7 +103,6 @@ export class Preview extends React.Component<
         }
       })
     );
-    console.log(this.props.ctx.zoom, JSON.stringify(this.props.ctx.display_offset));
 
     this.canvas_renderer.do_draw();
   };

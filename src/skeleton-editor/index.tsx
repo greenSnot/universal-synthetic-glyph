@@ -596,7 +596,7 @@ export class SkeletonEditor extends React.Component<
                 zoom: ctx.zoom,
               });
             }}>
-            relocate
+            focus
           </StyledBtn>
         </StyledBtns>
       </StyledEditor>
